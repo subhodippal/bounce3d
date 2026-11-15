@@ -23,11 +23,14 @@
     <div class="pill" id="hud-level">1. First Bounce</div>
     <div class="pill"><span class="ico ring-ico"></span><b id="hud-rings">0</b>/<span id="hud-rings-total">0</span></div>
     <div class="pill"><span class="ico">❤</span><b id="hud-lives">3</b></div>
+    <div class="pill"><span class="ico star">★</span><b id="hud-score">0</b></div>
     <div class="pill time" id="hud-time">0:00.00</div>
     <button class="pill btn-icon" id="hud-pause" aria-label="Pause">❚❚</button>
   </div>
 
   <div id="toast"></div>
+  <div id="pin-hud"></div>
+  <div id="fade"></div>
 
   <!-- Touch controls: left half = roll left, right half = roll right, swipe up = jump -->
   <div id="touch">
@@ -49,6 +52,7 @@
         <button class="btn" id="btn-sound">🔊 Sound: On</button>
         <button class="btn install" id="btn-install" hidden>⬇ Install app</button>
       </div>
+      <p class="sub" id="menu-hiscore"></p>
     </div>
   </section>
 
@@ -67,10 +71,14 @@
         <li><b>Move:</b> ← → / A D. On touch screens, hold the left or right half of the screen.</li>
         <li><b>Jump:</b> ↑ / W / Space (hold longer to jump higher). On touch screens, swipe up.</li>
         <li><span class="dot gold"></span>Collect <b>every ring</b> to open the exit portal.</li>
-        <li><span class="dot red"></span>Avoid spikes and red spiky hazards.</li>
+        <li><span class="dot red"></span>Avoid spikes and the red spiky spiders.</li>
         <li><span class="dot yellow"></span>Springs launch you high into the air.</li>
         <li><span class="dot pink"></span>Pink blocks are bouncy. Hold jump as you land for a super bounce.</li>
         <li><span class="dot cyan"></span>Checkpoints save your respawn point.</li>
+        <li><span class="dot green"></span><b>Pumps</b> blow you up big: you jump higher and float in water, but can't fit through 1-tile gaps.</li>
+        <li><span class="dot blue"></span><b>Pins</b> shrink you: you sink in water and fit under low slabs.</li>
+        <li><span class="dot water"></span>Water makes you float. <b>Blowers</b> push you up into the air.</li>
+        <li><span class="dot pink"></span>Every level hides a <b>secret lever</b> behind fake bricks. Find it to play a bonus pinball table: ← → flip the flippers, and you leave with the points.</li>
         <li><b>Pause:</b> Esc / P &nbsp; <b>Restart:</b> R &nbsp; Gamepads work too.</li>
       </ul>
       <button class="btn" id="help-back">← Back</button>
@@ -92,6 +100,8 @@
     <div class="card">
       <h2 id="complete-title">Level cleared!</h2>
       <p class="big" id="complete-time">0:00.00</p>
+      <p class="sub" id="complete-score"></p>
+      <p class="sub secret" id="complete-secret"></p>
       <div class="col">
         <button class="btn primary" id="btn-next">Next level ➜</button>
         <button class="btn" id="btn-complete-menu">⌂ Main menu</button>
@@ -115,6 +125,7 @@
       <h2>🏆 You beat every level!</h2>
       <p class="sub">Final level time</p>
       <p class="big" id="victory-time">0:00.00</p>
+      <p class="sub" id="victory-score"></p>
       <p class="sub">Replay any level to beat your best times.</p>
       <div class="col">
         <button class="btn primary" id="btn-victory-menu">⌂ Main menu</button>

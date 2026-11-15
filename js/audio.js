@@ -71,4 +71,9 @@ export class Sfx {
   die() { this.noise(0.35, 0.25); this.tone(400, 0.5, { type: 'sawtooth', slide: 60, vol: 0.08 }); }
   win() { [523, 659, 784, 1047, 784, 1047].forEach((f, i) => this.tone(f, 0.2, { type: 'square', vol: 0.06, delay: i * 0.1 })); }
   click() { this.tone(700, 0.04, { type: 'square', vol: 0.05 }); }
+  inflate() { this.tone(160, 0.45, { type: 'sawtooth', slide: 520, vol: 0.06 }); this.noise(0.3, 0.08); }
+  deflate() { this.noise(0.4, 0.14); this.tone(600, 0.4, { type: 'triangle', slide: 120, vol: 0.08 }); }
+  splash() { this.noise(0.25, 0.18); this.tone(260, 0.12, { type: 'sine', slide: 90, vol: 0.06 }); }
+  bumper() { this.tone(520 + Math.random() * 200, 0.08, { type: 'square', vol: 0.06 }); }
+  secret() { [659, 784, 988, 1319, 1568].forEach((f, i) => this.tone(f, 0.14, { type: 'triangle', vol: 0.12, delay: i * 0.06 })); }
 }

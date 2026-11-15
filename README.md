@@ -1,7 +1,9 @@
 # Rebound 3D
 
 A retro-inspired bouncing-ball platformer, rebuilt in 3D with [three.js](https://threejs.org/).
-Roll, jump and bounce through 5 levels: collect every ring to open the exit portal, and avoid spikes and spiky hazards.
+Roll, jump and bounce through 8 levels: collect every ring to open the exit portal, and avoid spikes and spiky spiders.
+Pumps make the ball big, pins make it small, water makes it float, and blowers lift it into the air.
+Every level also hides a **secret lever** behind fake bricks that opens a bonus **pinball table**.
 
 - Runs in any modern browser on **PC and mobile** (touch controls turn on automatically on touch screens)
 - **Installable as a PWA** and playable fully **offline**
@@ -17,6 +19,22 @@ Roll, jump and bounce through 5 levels: collect every ring to open the exit port
 | Restart | R                      |       |                  |
 
 Hold jump longer to jump higher. On touch screens, swipe down a little and up again to jump again without lifting your finger. Hold jump as you land on a **pink block** for a super bounce.
+
+### Ball sizes, water and blowers
+
+| Size   | Get it from | Jump | In water | Notes |
+|--------|-------------|------|----------|-------|
+| Normal | level start | 2.5 tiles | floats low | fits 1-tile gaps |
+| Big    | green **pump** | 3.3 tiles | floats high | too wide for 1-tile gaps |
+| Small  | blue **pin** | 2.2 tiles | sinks | rolls under low slabs |
+
+Checkpoints remember your size. **Blowers** push the ball up their air column and catch its sideways drift.
+
+### Secret pinball
+
+Each level hides a lever inside fake bricks (they turn see-through when the ball is inside them). Touch the lever to enter a bonus pinball table:
+← → (or the left/right halves of a touch screen) flip the flippers, and ↑ / Space / swipe up launches the ball (it also launches by itself).
+After 3 balls drain you return to the level, and the bonus is added to your score. The level list marks levels where you found the secret with ✦.
 
 ## Run locally
 
@@ -62,6 +80,7 @@ index.html              page + UI screens
 css/style.css           HUD, menus, touch controls
 js/main.js              renderer, physics, game loop, input, UI
 js/levels.js            level definitions (easy to edit/add)
+js/pinball.js           secret bonus pinball table
 js/audio.js             synthesized sound effects (WebAudio)
 vendor/three.module.min.js   three.js r160 (bundled locally for offline play)
 manifest.webmanifest, sw.js, icons/   PWA files
@@ -69,9 +88,9 @@ manifest.webmanifest, sw.js, icons/   PWA files
 
 ## Making levels
 
-Levels in `js/levels.js` are built with small helper calls (`rect`, `pit`, `spikes`, `rings`, `mover`, …) on a tile grid where **y grows upward** and rows 0–1 are the ground. The header comment in that file lists every tile type.
+Levels in `js/levels.js` are built with small helper calls (`rect`, `pit`, `spikes`, `rings`, `mover`, `pool`, `water`, `blower`, …) on a tile grid where **y grows upward** and rows 0–1 are the ground. The header comment in that file lists every tile type.
 
-Physics reference: a normal jump clears walls **2 tiles** high and gaps **4 tiles** wide; a spring reaches about **5.8 tiles** up.
+Physics reference: a normal jump clears walls **2 tiles** high and gaps **4 tiles** wide; a big ball clears **3-tile** walls; a spring reaches about **5.8 tiles** up.
 
 ## Updating a deployed version
 
