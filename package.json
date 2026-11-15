@@ -1,0 +1,10 @@
+{
+  "name": "rebound-3d",
+  "version": "1.0.0",
+  "description": "A retro-inspired bouncing-ball platformer in 3D (three.js, PWA).",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "serve": "node server.js"
+  }
+}
