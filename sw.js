@@ -1,6 +1,6 @@
 // Service worker: precache the whole game so it runs offline once installed.
 // Bump VERSION whenever you change any file so players get the update.
-const VERSION = 'rebound3d-v3';
+const VERSION = 'rebound3d-v6';
 const ASSETS = [
   './',
   './index.html',

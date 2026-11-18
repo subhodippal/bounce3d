@@ -54,9 +54,9 @@ function make(meta, build) {
 
 export const LEVELS = [
   // 1 ------------------------------------------------------------------------
-  make({ name: 'First Bounce', W: 80, H: 12, hue: 215,
-    hint: 'Roll with ← → and jump with ↑ or Space. Collect every ring. Psst… some bricks are fake!',
-    touchHint: 'Hold left/right side to roll, swipe up to jump. Collect every ring. Psst… some bricks are fake!' }, (l) => {
+  make({ name: 'First Bounce', W: 98, H: 12, hue: 215,
+    hint: 'Roll with ← → and jump with ↑ or Space. Collect every ring. A green pump blows you up to float on water!',
+    touchHint: 'Use ◀ ▶ to roll and JUMP to jump. Collect every ring. A green pump blows you up to float on water!' }, (l) => {
     l.set(3, 2, 'S');
     l.rings([8, 3]);
     l.rect(12, 2, 13, 2);
@@ -77,7 +77,16 @@ export const LEVELS = [
     l.rect(66, 2, 67, 2);
     l.rect(68, 2, 69, 3);
     l.rings([72, 4]);
-    l.set(76, 2, 'E');
+    // water: the pump inflates you so you float over the spiky pool; the pin shrinks you again
+    l.set(74, 2, 'P');
+    l.rect(78, 2, 78, 3);
+    l.pool(79, 2, 86, 3);
+    l.spikes(79, 86);
+    l.rect(87, 2, 87, 3);
+    l.rings([82, 5]);
+    l.set(90, 2, 'D');
+    l.rings([92, 3]);
+    l.set(95, 2, 'E');
   }),
 
   // 2 ------------------------------------------------------------------------
@@ -347,6 +356,41 @@ export const LEVELS = [
   }),
 
   // 8 ------------------------------------------------------------------------
+  make({ name: 'The Abyss', W: 100, H: 16, hue: 205,
+    hint: 'Grab the blue pin to shrink and sink to the seabed. Collect the rings down there, then pop the green pump to float back up!' }, (l) => {
+    l.rect(1, 2, 98, 8);                  // raised ground; the abyss is dug into it
+    l.set(3, 9, 'S');
+    l.set(10, 9, 'C');
+    l.rings([7, 10]);
+    l.set(16, 9, 'D');                    // pin: small balls sink
+    l.pool(20, 2, 70, 9);                 // 8 tiles deep
+    l.rect(19, 9, 19, 9);                 // brim
+    l.rect(71, 9, 71, 9);
+    // seabed: rings = points, with a few blocks, spikes and spiders to dodge
+    l.rings([23, 2], [26, 2], [29, 2]);
+    l.rect(32, 2, 33, 3);
+    l.rings([32, 5]);
+    l.spikes(35, 36);
+    l.rings([37, 4], [39, 2], [42, 2]);
+    l.rect(45, 2, 47, 4);
+    l.rings([46, 6]);
+    l.mover(52, 5.5, 'y', 1.5, 1.4);
+    l.rings([50, 2], [54, 2]);
+    l.spikes(56, 57);
+    l.mover(61, 3.9, 'x', 2.2, 1.3, 1);
+    l.rings([59, 2], [63, 2], [65, 3]);
+    l.rect(67, 2, 67, 3);
+    l.set(69, 2, 'P');                    // pump: big balls float back to the surface
+    l.set(73, 9, 'C');
+    l.rings([76, 10]);
+    // secret behind fake bricks
+    l.rect(82, 9, 85, 10);
+    l.set(82, 9, 'H'); l.set(83, 9, 'H'); l.set(84, 9, 'L');
+    l.rings([88, 10]);
+    l.set(94, 9, 'E');
+  }),
+
+  // 9 ------------------------------------------------------------------------
   make({ name: 'Neon Gauntlet', W: 134, H: 14, hue: 25,
     hint: 'The final gauntlet. Everything you have learned. Good luck!' }, (l) => {
     l.set(3, 2, 'S');

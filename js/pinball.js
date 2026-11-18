@@ -2,10 +2,25 @@
 // Left / right input flips the flippers, JUMP launches the ball. 3 balls, then you exit with the points.
 import * as THREE from '../vendor/three.module.min.js';
 
-const G = 15;          // table gravity (feels like a tilted table)
+// Every level has its own, nastier table: stronger gravity and kicks, shorter flippers, more bumpers,
+// moving bumpers and a score multiplier. Index = level index (clamped to the last entry).
+const TABLES = [
+  { name: 'WARM-UP',   g: 15,   bump: 7,  sling: 7,  fl: 1.55, vmax: 24, extra: [],                 movers: 0, mult: 1,   tint: 0xffffff },
+  { name: 'SPRINGY',   g: 15.5, bump: 7.5, sling: 7, fl: 1.5,  vmax: 24, extra: ['A', 'B'],         movers: 0, mult: 1,   tint: 0xbfffd8 },
+  { name: 'POP ALLEY', g: 16,   bump: 8,  sling: 8,  fl: 1.5,  vmax: 25, extra: ['A', 'B', 'D', 'E'], movers: 1, mult: 1.5, tint: 0xffe0a8 },
+  { name: 'SWEEPER',   g: 16.5, bump: 8.5, sling: 8.5, fl: 1.45, vmax: 25, extra: ['A', 'B', 'D', 'E'], movers: 1, mult: 2,   tint: 0xffb8c8, speed: 1.2 },
+  { name: 'TWIN SWEEP', g: 17,  bump: 9,  sling: 9,  fl: 1.4,  vmax: 26, extra: ['A', 'B', 'D', 'E'], movers: 2, mult: 2.5, tint: 0xd2b8ff, speed: 1.3 },
+  { name: 'THE PIT',   g: 17.5, bump: 9.5, sling: 9.5, fl: 1.35, vmax: 26, extra: ['A', 'B', 'C', 'D', 'E'], movers: 2, mult: 3, tint: 0xa8e8ff, speed: 1.4 },
+  { name: 'PANIC',     g: 18.5, bump: 10, sling: 10, fl: 1.3,  vmax: 27, extra: ['A', 'B', 'C', 'D', 'E'], movers: 2, mult: 4, tint: 0xff9a9a, speed: 1.7 },
+  { name: 'MELTDOWN',  g: 19,   bump: 11, sling: 11, fl: 1.25, vmax: 28, extra: ['A', 'B', 'C', 'D', 'E'], movers: 2, mult: 5, tint: 0xff7ad0, speed: 2.1 },
+];
+// optional bumpers (switched on per table) and the two sweeping ones
+const EXTRA = { A: { x: -3.4, y: 8.5, r: 0.5, score: 120 }, B: { x: 3.4, y: 8.5, r: 0.5, score: 120 }, C: { x: 0, y: 3.7, r: 0.34, score: 300 },
+  D: { x: -1.1, y: 13.7, r: 0.4, score: 200 }, E: { x: 1.1, y: 13.7, r: 0.4, score: 200 } };
+const MOVERS = [{ x0: 0, y: 5.9, amp: 2.3, speed: 1.3, phase: 0, r: 0.4, score: 200 }, { x0: 0, y: 12.7, amp: 2.0, speed: 1.7, phase: 2, r: 0.38, score: 250 }];
+const BASE_G = 15;
 const BR = 0.28;       // ball radius
 const SUB = 1 / 240;   // physics sub-step
-const VMAX = 24;
 const FL_LEN = 1.55, FL_R = 0.14, FL_REST = -0.5, FL_UP = 0.5;
 export const PIN_BALLS = 3;
 
@@ -49,6 +64,8 @@ export class Pinball {
       { x: 0, y: 7.4, r: 0.62, score: 150 },
       { x: 0, y: 11.6, r: 0.45, score: 250 },
     ];
+    for (const k of Object.keys(EXTRA)) this.bumpers.push({ ...EXTRA[k], key: k, extra: true });
+    MOVERS.forEach((m, i) => this.bumpers.push({ ...m, mover: i, extra: true }));
     this.lights = [
       { x: -3.6, y: 7.6 }, { x: -1.2, y: 12.9 }, { x: 1.2, y: 12.9 }, { x: 3.6, y: 7.6 },
     ];
@@ -57,7 +74,11 @@ export class Pinball {
       { px: 2.0, py: 1.45, side: -1, a: FL_REST, w: 0 },
     ];
 
+    this.t = 0;
+    this.cfg = TABLES[0];
+    this.flLen = FL_LEN;
     this.buildMeshes(ballMat);
+    this.setLevel(0);
     this.reset();
   }
 
@@ -78,7 +99,8 @@ export class Pinball {
       x.fillText('◀ ▶ FLIPPERS', 128, 274);
       const t = new THREE.CanvasTexture(x.canvas); t.colorSpace = THREE.SRGBColorSpace; return t;
     })();
-    const back = new THREE.Mesh(new THREE.PlaneGeometry(11.4, 19), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9 }));
+    this.backMat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9 });
+    const back = new THREE.Mesh(new THREE.PlaneGeometry(11.4, 19), this.backMat);
     back.position.set(0.5, 9, -0.45);
     back.receiveShadow = true;
     g.add(back);
@@ -103,7 +125,7 @@ export class Pinball {
       const cap = new THREE.Mesh(new THREE.CylinderGeometry(b.r * 0.6, b.r * 0.6, 0.72, 20), new THREE.MeshBasicMaterial({ color: 0xff3b6b }));
       cap.rotation.x = Math.PI / 2; cap.position.set(b.x, b.y, 0.02);
       g.add(m, cap);
-      b.mesh = m; b.mat = mat; b.flash = 0;
+      b.mesh = m; b.mat = mat; b.cap = cap; b.flash = 0;
     }
     for (const l of this.lights) {
       const mat = new THREE.MeshBasicMaterial({ color: 0x334466 });
@@ -135,6 +157,21 @@ export class Pinball {
     g.add(glow);
   }
 
+  // Pick this level's table (harder every level).
+  setLevel(idx) {
+    const cfg = TABLES[Math.max(0, Math.min(TABLES.length - 1, idx | 0))];
+    this.cfg = cfg; this.level = Math.max(0, Math.min(TABLES.length - 1, idx | 0));
+    this.flLen = cfg.fl;
+    for (const f of this.flippers) f.mesh.scale.x = cfg.fl / FL_LEN;
+    for (const sg of this.segs) if (sg.sling) sg.kick = cfg.sling;
+    for (const b of this.bumpers) {
+      if (!b.extra) continue;
+      b.on = b.mover !== undefined ? b.mover < cfg.movers : cfg.extra.includes(b.key);
+      b.mesh.visible = b.on; b.cap.visible = b.on;
+    }
+    this.backMat.color.setHex(cfg.tint);
+  }
+
   reset() {
     this.points = 0;
     this.ballsLeft = PIN_BALLS;
@@ -155,7 +192,7 @@ export class Pinball {
   hide() { this.group.visible = false; }
 
   add(pts, x, y, color) {
-    this.points += pts;
+    this.points += Math.round(pts * this.cfg.mult);
     if (x !== undefined) this.burst(this.origin.x + x, this.origin.y + y, color, 10, 3);
   }
 
@@ -175,7 +212,7 @@ export class Pinball {
     if (this.inLane) {
       this.laneWait += dt;
       if (b.x > 5 && b.y < 1.5 && Math.abs(b.vy) < 0.5 && (input.launch || this.laneWait > 1.6)) {
-        b.vy = 22 + Math.random() * 2.5;
+        b.vy = 22 * Math.sqrt(this.cfg.g / BASE_G) + Math.random() * 2.5;
         this.inLane = false;
         this.sfx.spring();
       }
@@ -212,24 +249,30 @@ export class Pinball {
       f.was = pressed;
     }
 
-    b.vy -= G * dt;
+    this.t += dt;
+    for (const bm of this.bumpers) if (bm.mover !== undefined && bm.on) {
+      bm.x = bm.x0 + bm.amp * Math.sin(this.t * bm.speed * (this.cfg.speed || 1) + bm.phase);
+      bm.mesh.position.x = bm.x; bm.cap.position.x = bm.x;
+    }
+    b.vy -= this.cfg.g * dt;
     const s = Math.hypot(b.vx, b.vy);
-    if (s > VMAX) { b.vx *= VMAX / s; b.vy *= VMAX / s; }
+    if (s > this.cfg.vmax) { b.vx *= this.cfg.vmax / s; b.vy *= this.cfg.vmax / s; }
     b.x += b.vx * dt; b.y += b.vy * dt;
 
     for (const sg of this.segs) this.hitSeg(sg.x1, sg.y1, sg.x2, sg.y2, BR, sg, 0, 0, 0);
     for (const f of this.flippers) {
-      const tx = f.px + Math.cos(f.dir) * FL_LEN, ty = f.py + Math.sin(f.dir) * FL_LEN;
+      const tx = f.px + Math.cos(f.dir) * this.flLen, ty = f.py + Math.sin(f.dir) * this.flLen;
       this.hitSeg(f.px, f.py, tx, ty, BR + FL_R, { e: 0.25 }, f.w, f.px, f.py);
     }
     for (const bm of this.bumpers) {
+      if (bm.extra && !bm.on) continue;
       const dx = b.x - bm.x, dy = b.y - bm.y, d = Math.hypot(dx, dy), min = BR + bm.r;
       if (d < min && d > 1e-6) {
         const nx = dx / d, ny = dy / d;
         b.x = bm.x + nx * min; b.y = bm.y + ny * min;
         const vn = b.vx * nx + b.vy * ny;
         if (vn < 0) { b.vx -= 1.6 * vn * nx; b.vy -= 1.6 * vn * ny; }
-        b.vx += nx * 7; b.vy += ny * 7;
+        b.vx += nx * this.cfg.bump; b.vy += ny * this.cfg.bump;
         bm.flash = 0.15;
         this.add(bm.score, bm.x + nx * bm.r, bm.y + ny * bm.r, 0xffd84a);
         this.sfx.bumper();
@@ -283,6 +326,7 @@ export class Pinball {
     this.ballMesh.visible = this.endTimer <= 0;
     for (const f of this.flippers) f.mesh.rotation.z = f.dir ?? (f.side > 0 ? FL_REST : Math.PI - FL_REST);
     for (const bm of this.bumpers) {
+      if (bm.extra && !bm.on) continue;
       bm.flash = Math.max(0, bm.flash - dt);
       const k = bm.flash > 0 ? 1.18 : 1;
       bm.mesh.scale.set(k, 1, k);

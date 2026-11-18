@@ -30,7 +30,7 @@ const P = {
   MAXV: 5.5, ACC_G: 34, ACC_A: 20, DEC: 16, STEP: 1 / 120, MAXFALL: 24,
   BOUNCE: 0.5,         // how much the ball rebounds off the floor
   BLOW: 2.2,           // blower lift (in units of gravity)
-  SPIDER_R: 0.45,      // spider hit radius
+  SPIDER_R: 0.8,       // spider hit radius
 };
 // Ball sizes: pumps inflate to big, pins shrink to small.
 const SIZES = {
@@ -38,6 +38,7 @@ const SIZES = {
   normal: { r: 0.4, jump: 12, buoy: 1.2 },
   big: { r: 0.62, jump: 13.6, buoy: 2.0 },
 };
+const SPIDER_SCALE = 1.8;      // spiders are big, like the original
 const SCORE = { ring: 100, life: 250, level: 1000 };
 
 // ---------------------------------------------------------------------------
@@ -92,15 +93,12 @@ const brickTex = canvasTex(128, 128, (g, w, h) => {
   }
 });
 
-const ballTex = canvasTex(512, 256, (g, w, h) => {
+const ballTex = canvasTex(256, 128, (g, w, h) => {
+  // plain red rubber ball (like the original Bounce)
+  g.fillStyle = '#e01b24'; g.fillRect(0, 0, w, h);
   const grd = g.createLinearGradient(0, 0, 0, h);
-  grd.addColorStop(0, '#ff5a4f'); grd.addColorStop(0.5, '#e0202c'); grd.addColorStop(1, '#a3101e');
+  grd.addColorStop(0, 'rgba(255,120,110,.35)'); grd.addColorStop(0.5, 'rgba(255,255,255,0)'); grd.addColorStop(1, 'rgba(80,0,10,.35)');
   g.fillStyle = grd; g.fillRect(0, 0, w, h);
-  g.fillStyle = '#fff4e6';
-  for (let i = 0; i < 4; i++) g.fillRect(i * (w / 4) + w / 8 - 14, 0, 28, h);
-  g.fillStyle = '#ffd34d';
-  g.beginPath(); g.ellipse(w * 0.25, h / 2, 34, 34, 0, 0, Math.PI * 2); g.fill();
-  g.beginPath(); g.ellipse(w * 0.75, h / 2, 34, 34, 0, 0, Math.PI * 2); g.fill();
 });
 
 // Shared geometries
@@ -488,6 +486,7 @@ function buildLevel(idx) {
 // Big spiky spider: round body bristling with red spikes, eyes, and eight wiggling legs.
 function makeSpider() {
   const g = new THREE.Group();
+  g.scale.setScalar(SPIDER_SCALE);
   const body = new THREE.Mesh(GEO.spiderBody, MAT.spider);
   body.castShadow = true;
   g.add(body);
@@ -641,26 +640,49 @@ function addLife(i, j) {
   lifeItems.push({ x: i, y: j, mesh, taken: false });
 }
 
+// Exit: a wooden door in a stone frame. Locked (dark, with a padlock) until every ring is collected,
+// then the door swings open onto a glowing doorway.
 function addExit(i, j) {
   const g = new THREE.Group();
-  const ringMat = new THREE.MeshStandardMaterial({ color: 0xff3344, emissive: 0x880011, metalness: 0.6, roughness: 0.3 });
-  const discMat = new THREE.MeshBasicMaterial({ color: 0x330008, transparent: true, opacity: 0.75, side: THREE.DoubleSide });
-  const torus = new THREE.Mesh(GEO.portal, ringMat); torus.userData.ownMat = true;
-  const disc = new THREE.Mesh(GEO.disc, discMat); disc.userData.ownMat = true;
-  torus.castShadow = true;
-  g.add(torus, disc);
-  g.position.set(i, j + 0.5, 0);
+  const frameMat = new THREE.MeshStandardMaterial({ color: 0x8d949f, roughness: 0.7, metalness: 0.1 });
+  const leafMat = new THREE.MeshStandardMaterial({ color: 0x7a4a26, roughness: 0.6, emissive: 0x000000 });
+  const discMat = new THREE.MeshBasicMaterial({ color: 0x050508, side: THREE.DoubleSide });
+  const W = 0.96, Ht = 1.6, T = 0.14;
+  const box = (w, h, d, mat, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); m.castShadow = true; g.add(m); return m; };
+  box(T, Ht + T, 0.6, frameMat, -(W / 2 + T / 2), Ht / 2, 0);
+  box(T, Ht + T, 0.6, frameMat, W / 2 + T / 2, Ht / 2, 0);
+  box(W + T * 2, T, 0.6, frameMat, 0, Ht + T / 2, 0);
+  const disc = new THREE.Mesh(new THREE.PlaneGeometry(W, Ht), discMat);   // the dark doorway behind the leaf
+  disc.position.set(0, Ht / 2, -0.12); disc.userData.ownMat = true;
+  g.add(disc);
+  // leaf hangs from a hinge pivot on the left post
+  const torus = new THREE.Group();
+  torus.position.set(-W / 2, 0, 0.05);
+  const leaf = new THREE.Mesh(new THREE.BoxGeometry(W, Ht, 0.1), leafMat);
+  leaf.position.set(W / 2, Ht / 2, 0); leaf.castShadow = true; leaf.userData.ownMat = true;
+  torus.add(leaf);
+  const panelMat = new THREE.MeshStandardMaterial({ color: 0x5e3718, roughness: 0.7 });
+  for (const py of [0.4, 1.15]) {
+    const p = new THREE.Mesh(new THREE.BoxGeometry(W * 0.62, Ht * 0.3, 0.04), panelMat);
+    p.position.set(W / 2, py + 0.05, 0.06); torus.add(p);
+  }
+  const knob = new THREE.Mesh(new THREE.SphereGeometry(0.06, 12, 8), MAT.springPad);
+  knob.position.set(W - 0.16, Ht * 0.48, 0.1); torus.add(knob);
+  const lock = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.16, 0.06), MAT.ring);   // padlock until the door opens
+  lock.position.set(W - 0.16, Ht * 0.48 - 0.2, 0.1); torus.add(lock);
+  g.add(torus);
+  g.position.set(i, j - 0.5, 0);
   levelGroup.add(g);
-  exitE = { x: i, y: j, g, torus, disc, ringMat, discMat };
+  exitE = { x: i, y: j, g, torus, disc, ringMat: leafMat, discMat, lock, open: 0 };
 }
 
 function setPortalOpen() {
   portalOpen = true;
-  exitE.ringMat.color.set(0x37ff8b); exitE.ringMat.emissive.set(0x0a7a3a);
-  exitE.discMat.color.set(0x7dffd0); exitE.discMat.opacity = 0.55;
+  exitE.discMat.color.set(0xffe9a8);
+  exitE.lock.visible = false;
   sfx.open();
-  toast('Portal open! Head to the exit ➜');
-  burst(exitE.x, exitE.y + 0.5, 0x7dffd0, 40, 3);
+  toast('Door unlocked! Head to the exit ➜');
+  burst(exitE.x, exitE.y + 0.5, 0xffe9a8, 40, 3);
 }
 
 // ---------------------------------------------------------------------------
@@ -686,68 +708,51 @@ window.addEventListener('keydown', (e) => {
 window.addEventListener('keyup', (e) => { const k = KEYMAP[e.code]; if (k) kb[k] = false; });
 window.addEventListener('blur', () => { kb.left = kb.right = kb.jump = false; resetTouches(); });
 
-// Touch controls: hold the left half of the screen to roll left, the right half to roll right,
-// swipe up (anywhere) to jump. Swipe down a little and up again to jump again without lifting.
+// Touch controls: on-screen ◀ ▶ and JUMP buttons. Each finger is tracked by pointer id, so you
+// can hold a direction and press jump at the same time.
 const touchEl = $('touch');
-const zoneL = touchEl.querySelector('.zone.left');
-const zoneR = touchEl.querySelector('.zone.right');
-const touchPointers = new Map(); // pointerId -> { side, anchorY, jumping }
-let touchJumpQueued = false;     // swipe seen; consumed by the game loop (so very fast flicks still count)
+const tbtns = [...touchEl.querySelectorAll('.tbtn')];
+const touchPointers = new Map(); // pointerId -> action
+let touchJumpQueued = false;     // jump pressed; consumed by the game loop (so very fast taps still count)
 let touchHintTimer = 0;
-const swipeDist = () => Math.max(24, window.innerHeight * 0.06);
-const sideOf = (x) => (x < window.innerWidth / 2 ? 'left' : 'right');
 
 function syncTouchState() {
-  tc.left = tc.right = tc.jump = false;
-  for (const p of touchPointers.values()) {
-    tc[p.side] = true;
-    if (p.jumping) tc.jump = true;
-  }
-  zoneL.classList.toggle('on', tc.left);
-  zoneR.classList.toggle('on', tc.right);
+  const held = new Set(touchPointers.values());
+  tc.left = held.has('left'); tc.right = held.has('right'); tc.jump = held.has('jump');
+  for (const b of tbtns) b.classList.toggle('on', held.has(b.dataset.act));
 }
-
-function resetTouches() {
-  touchPointers.clear();
-  touchJumpQueued = false;
+function resetTouches() { touchPointers.clear(); touchJumpQueued = false; syncTouchState(); }
+function showTouchHints() {}
+function actAt(x, y) {
+  let best = null, bestD = Infinity;
+  for (const b of tbtns) {
+    const r = b.getBoundingClientRect();
+    const d = Math.hypot(x - (r.left + r.width / 2), y - (r.top + r.height / 2));
+    if (d < Math.max(r.width, r.height) * 0.75 && d < bestD) { best = b.dataset.act; bestD = d; }
+  }
+  return best;
+}
+function setTouch(id, act) {
+  if (touchPointers.get(id) === act) return;
+  if (act) touchPointers.set(id, act); else touchPointers.delete(id);
+  if (act === 'jump') touchJumpQueued = true;
   syncTouchState();
 }
-
-function showTouchHints(ms = 3500) {
-  touchEl.classList.add('hints');
-  clearTimeout(touchHintTimer);
-  touchHintTimer = setTimeout(() => touchEl.classList.remove('hints'), ms);
-}
-
 touchEl.addEventListener('pointerdown', (e) => {
-  e.preventDefault();
-  sfx.unlock();
+  const act = actAt(e.clientX, e.clientY);
+  if (!act) return;
+  e.preventDefault(); sfx.unlock();
   try { touchEl.setPointerCapture(e.pointerId); } catch { /* ignore */ }
-  touchPointers.set(e.pointerId, { side: sideOf(e.clientX), anchorY: e.clientY, jumping: false });
-  syncTouchState();
+  setTouch(e.pointerId, act);
 });
-
 touchEl.addEventListener('pointermove', (e) => {
-  const p = touchPointers.get(e.pointerId);
-  if (!p) return;
+  if (!touchPointers.has(e.pointerId)) return;
   e.preventDefault();
-  p.side = sideOf(e.clientX); // sliding across the middle switches direction
-  const y = e.clientY;
-  if (!p.jumping) {
-    if (y > p.anchorY) p.anchorY = y;                       // track lowest point
-    else if (p.anchorY - y > swipeDist()) { p.jumping = true; p.anchorY = y; touchJumpQueued = true; }
-  } else {
-    if (y < p.anchorY) p.anchorY = y;                       // track highest point
-    else if (y - p.anchorY > swipeDist()) { p.jumping = false; p.anchorY = y; } // re-arm
-  }
-  syncTouchState();
+  const act = actAt(e.clientX, e.clientY);
+  if (act === 'left' || act === 'right') setTouch(e.pointerId, act);   // slide between ◀ and ▶
 });
-
 for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) {
-  touchEl.addEventListener(ev, (e) => {
-    if (!touchPointers.delete(e.pointerId)) return;
-    syncTouchState();
-  });
+  touchEl.addEventListener(ev, (e) => { if (touchPointers.delete(e.pointerId)) syncTouchState(); });
 }
 touchEl.addEventListener('contextmenu', (e) => e.preventDefault());
 
@@ -1057,7 +1062,7 @@ function completeLevel() {
   levelScore = 0;
   if (score > hiScore) { hiScore = score; store.set('hiscore', hiScore); }
   sfx.win();
-  burst(exitE.x, exitE.y + 0.5, 0x7dffd0, 60, 5);
+  burst(exitE.x, exitE.y + 0.5, 0xffe9a8, 60, 5);
   ballPivot.visible = false;
   const key = String(levelIdx);
   const isBest = !bestTimes[key] || elapsed < bestTimes[key];
@@ -1121,7 +1126,7 @@ function updateWarp(dt) {
     warp.swapped = true;
     if (warp.to === 'pinball') {
       levelGroup.visible = false; ballPivot.visible = false;
-      pinball.reset(); pinball.show();
+      pinball.setLevel(levelIdx); pinball.reset(); pinball.show();
       fogSave = { near: scene.fog.near, far: scene.fog.far };
       scene.fog.near = 60; scene.fog.far = 140;
       pinHudEl.classList.add('show');
@@ -1139,7 +1144,7 @@ function updateWarp(dt) {
     const to = warp.to, pts = warp.pts;
     warp = null;
     state = to === 'pinball' ? 'pinball' : 'playing';
-    if (to === 'pinball') toast(isTouch ? 'Hold left / right side for the flippers. Swipe up to launch.' : '← → flippers, ↑ / Space to launch', 3000);
+    if (to === 'pinball') toast((isTouch ? '◀ ▶ flippers, JUMP to launch' : '← → flippers, ↑ / Space to launch') + ` · ${pinball.cfg.name} table ×${pinball.cfg.mult} points`, 3200);
     else toast(`Bonus +${pts} points!`, 2400);
   }
 }
@@ -1404,11 +1409,10 @@ function animate(dt, time) {
     sp.coils[1].position.y = -0.26 + c * 0.17;
   }
   if (exitE) {
-    exitE.torus.rotation.z = time * (portalOpen ? 2.5 : 0.5);
-    exitE.disc.scale.setScalar(portalOpen ? 1 + Math.sin(time * 5) * 0.05 : 1);
+    exitE.open += ((portalOpen ? 1 : 0) - exitE.open) * Math.min(1, dt * 5);
+    exitE.torus.rotation.y = -exitE.open * 1.9;       // swing the door open toward the camera
     if (portalOpen && Math.random() < dt * 20) {
-      const a = Math.random() * Math.PI * 2;
-      burst(exitE.x + Math.cos(a) * 0.75, exitE.y + 0.5 + Math.sin(a) * 0.75, 0x7dffd0, 1, 0.6);
+      burst(exitE.x + (Math.random() - 0.5) * 0.8, exitE.y + Math.random() * 1.2, 0xffe9a8, 1, 0.6);
     }
   }
 }
@@ -1440,13 +1444,13 @@ function frame(now) {
     const launch = touchJumpQueued || (input.jump && !input.jumpPrev);
     touchJumpQueued = false;
     pinball.update(dt, { left: input.left, right: input.right, launch });
-    pinHudEl.textContent = `BONUS ${pinball.points}  ·  BALL ${Math.min(PIN_BALLS, PIN_BALLS - pinball.ballsLeft + 1)}/${PIN_BALLS}`;
+    pinHudEl.textContent = `${pinball.cfg.name} ×${pinball.cfg.mult}  ·  BONUS ${pinball.points}  ·  BALL ${Math.min(PIN_BALLS, PIN_BALLS - pinball.ballsLeft + 1)}/${PIN_BALLS}`;
     if (pinball.done) exitPinball();
   } else if (state === 'warp') {
     updateWarp(dt);
   } else if (state === 'playing') {
     readInput();
-    if (touchJumpQueued) { touchJumpQueued = false; ball.buffer = 0.13; ball.bufferTouch = true; }
+    if (touchJumpQueued) { touchJumpQueued = false; ball.buffer = 0.13; ball.bufferTouch = false; }
     else if (input.jump && !input.jumpPrev) { ball.buffer = 0.13; ball.bufferTouch = false; }
     acc += dt;
     while (acc >= P.STEP) {

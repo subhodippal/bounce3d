@@ -32,12 +32,15 @@
   <div id="pin-hud"></div>
   <div id="fade"></div>
 
-  <!-- Touch controls: left half = roll left, right half = roll right, swipe up = jump -->
+  <!-- Touch controls: ◀ ▶ bottom-left, JUMP bottom-right (portrait and landscape) -->
   <div id="touch">
-    <div class="zone left"><span class="arrow">◀</span></div>
-    <div class="zone right"><span class="arrow">▶</span></div>
-    <div class="divider"></div>
-    <div class="swipe-hint"><span>⇡</span>Swipe up to jump</div>
+    <div class="pad-l">
+      <button class="tbtn" data-act="left" aria-label="Left">◀</button>
+      <button class="tbtn" data-act="right" aria-label="Right">▶</button>
+    </div>
+    <div class="pad-r">
+      <button class="tbtn jump" data-act="jump" aria-label="Jump">JUMP</button>
+    </div>
   </div>
 
   <!-- Screens -->
@@ -68,9 +71,9 @@
     <div class="card wide">
       <h2>How to play</h2>
       <ul class="help">
-        <li><b>Move:</b> ← → / A D. On touch screens, hold the left or right half of the screen.</li>
-        <li><b>Jump:</b> ↑ / W / Space (hold longer to jump higher). On touch screens, swipe up.</li>
-        <li><span class="dot gold"></span>Collect <b>every ring</b> to open the exit portal.</li>
+        <li><b>Move:</b> ← → / A D. On touch screens, use the ◀ ▶ buttons.</li>
+        <li><b>Jump:</b> ↑ / W / Space (hold longer to jump higher). On touch screens, use the JUMP button.</li>
+        <li><span class="dot gold"></span>Collect <b>every ring</b> to unlock the exit door.</li>
         <li><span class="dot red"></span>Avoid spikes and the red spiky spiders.</li>
         <li><span class="dot yellow"></span>Springs launch you high into the air.</li>
         <li><span class="dot pink"></span>Pink blocks are bouncy. Hold jump as you land for a super bounce.</li>

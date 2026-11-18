@@ -18,7 +18,7 @@ Every level also hides a **secret lever** behind fake bricks that opens a bonus 
 | Pause   | Esc / P                | ❚❚    |                  |
 | Restart | R                      |       |                  |
 
-Hold jump longer to jump higher. On touch screens, swipe down a little and up again to jump again without lifting your finger. Hold jump as you land on a **pink block** for a super bounce.
+Hold jump longer to jump higher. On touch screens, use the on-screen ◀ ▶ and JUMP buttons. Hold jump as you land on a **pink block** for a super bounce.
 
 ### Ball sizes, water and blowers
 
@@ -33,7 +33,7 @@ Checkpoints remember your size. **Blowers** push the ball up their air column an
 ### Secret pinball
 
 Each level hides a lever inside fake bricks (they turn see-through when the ball is inside them). Touch the lever to enter a bonus pinball table:
-← → (or the left/right halves of a touch screen) flip the flippers, and ↑ / Space / swipe up launches the ball (it also launches by itself).
+← → (or the on-screen ◀ ▶) flip the flippers, and ↑ / Space / JUMP launches the ball (it also launches by itself).
 After 3 balls drain you return to the level, and the bonus is added to your score. The level list marks levels where you found the secret with ✦.
 
 ## Run locally
